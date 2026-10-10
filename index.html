@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro</title>
+  
+  <!-- Google Fonts: Comfortaa / Quicksand / Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@600;700&family=Nunito:wght@500;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-pink: #fde2ea;
+      --card-bg: rgba(255, 250, 252, 0.95);
+      --text-pink: #eb4f7c;
+      --text-sub: #b28e9b;
+      --primary-pink: #f77097;
+      --pink-gradient: linear-gradient(135deg, #f87299 0%, #f38ba7 100%);
+      --ring-pink: #f693b1;
+      --tab-bg: #fde8f0;
+      --icon-btn-bg: #fcebf2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Nunito', 'Quicksand', sans-serif;
+      background: linear-gradient(160deg, #fde3eb 0%, #fcedf2 50%, #fbe8ef 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* Container Card matching the screenshot frame */
+    .pomodoro-card {
+      width: 100%;
+      max-width: 380px;
+      background: var(--card-bg);
+      border-radius: 40px;
+      padding: 32px 28px 36px 28px;
+      box-shadow: 0 20px 45px rgba(235, 79, 124, 0.12), 0 4px 15px rgba(0,0,0,0.02);
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* Header Bar */
+    .header-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-emoji {
+      font-size: 1.6rem;
+    }
+
+    .brand-title {
+      font-family: 'Comfortaa', 'Nunito', cursive, sans-serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--text-pink);
+      letter-spacing: -0.5px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #fdf2f6;
+      border: 1px solid #f9e2ed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text-pink);
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: #f8e1ec;
+      transform: scale(1.04);
+    }
+
+    /* Mode Pill Tabs Bar */
+    .mode-bar {
+      width: 100%;
+      background: var(--tab-bg);
+      padding: 5px;
+      border-radius: 25px;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      border: 1px solid #f9dbe6;
+    }
+
+    .mode-tab {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 10px 0;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .mode-tab.active {
+      background: #ffffff;
+      color: var(--text-pink);
+      box-shadow: 0 4px 12px rgba(235, 79, 124, 0.12);
+    }
+
+    /* Timer Ring Center */
+    .timer-container {
+      position: relative;
+      width: 250px;
+      height: 250px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 36px;
+    }
+
+    .timer-ring-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: #fae1eb;
+      stroke-width: 14;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: var(--ring-pink);
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-dasharray: 628.3; /* 2 * PI * 100 */
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+
+    .timer-center-text {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .time-digits {
+      font-family: 'Nunito', sans-serif;
+      font-size: 3.6rem;
+      font-weight: 800;
+      color: var(--text-pink);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .mode-subtitle {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-sub);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Bottom Action Controls */
+    .controls-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .reset-btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 20px;
+      background: #fdf0f5;
+      border: 1.5px solid #f9d8e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-pink);
+      font-size: 1.3rem;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+
+    .reset-btn:hover {
+      background: #fbe2ed;
+      transform: scale(1.03);
+    }
+
+    .start-btn {
+      flex: 1;
+      height: 58px;
+      border: none;
+      border-radius: 20px;
+      background: var(--pink-gradient);
+      color: #ffffff;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(247, 112, 151, 0.35);
+      transition: all 0.2s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .start-btn:hover {
+      opacity: 0.95;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px rgba(247, 112, 151, 0.4);
+    }
+
+    .start-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Footer Cycle Tracker */
+    .tracker-section {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 18px;
+      border-top: 1.5px dashed #f8d7e4;
+      gap: 10px;
+    }
+
+    .tracker-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-sub);
+    }
+
+    .tracker-count {
+      color: var(--text-pink);
+      font-weight: 800;
+    }
+
+    .tracker-icons-row {
+      display: flex;
+      gap: 12px;
+      font-size: 1.3rem;
+    }
+
+    .session-icon {
+      opacity: 0.35;
+      filter: grayscale(80%);
+      transition: all 0.3s ease;
+    }
+
+    .session-icon.active {
+      opacity: 1;
+      filter: grayscale(0%);
+      transform: scale(1.15);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="pomodoro-card">
+    
+    <!-- Header -->
+    <header class="header-bar">
+      <div class="brand">
+        <span class="brand-emoji">🩰</span>
+        <span class="brand-title">Pomodoro</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="toggleRainSound()" title="Ambient Rain Sound">🎧</button>
+        <button class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Navigation Bar -->
+    <div class="mode-bar">
+      <button class="mode-tab active" data-mode="work" onclick="switchMode('work')">
+        🌷 Work
+      </button>
+      <button class="mode-tab" data-mode="shortBreak" onclick="switchMode('shortBreak')">
+        🥥 Short
+      </button>
+      <button class="mode-tab" data-mode="longBreak" onclick="switchMode('longBreak')">
+        🏝️ Long
+      </button>
+    </div>
+
+    <!-- Timer Ring -->
+    <div class="timer-container">
+      <svg class="timer-ring-svg" viewBox="0 0 220 220">
+        <circle class="ring-bg" cx="110" cy="110" r="100"></circle>
+        <circle class="ring-progress" id="progressRing" cx="110" cy="110" r="100"></circle>
+      </svg>
+      <div class="timer-center-text">
+        <div class="time-digits" id="timeDisplay">25:00</div>
+        <div class="mode-subtitle" id="modeSubtitle">TIME TO FOCUS 🪽</div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="controls-row">
+      <button class="reset-btn" onclick="resetTimer()" title="Reset">
+        ↺
+      </button>
+      <button class="start-btn" id="startBtn" onclick="toggleTimer()">
+        Start
+      </button>
+    </div>
+
+    <!-- Footer Tracker -->
+    <div class="tracker-section">
+      <span class="tracker-label">Pomodoro Session: <span class="tracker-count" id="sessionCountText">1 / 4</span></span>
+      <div class="tracker-icons-row" id="trackerIcons">
+        <span class="session-icon active">🩰</span>
+        <span class="session-icon">🪽</span>
+        <span class="session-icon">🌷</span>
+        <span class="session-icon">🥥</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Configurations
+    const MODES = {
+      work: { time: 25 * 60, subtitle: 'TIME TO FOCUS 🪽', icon: '🌷' },
+      shortBreak: { time: 5 * 60, subtitle: 'SHORT BREAK 🥥', icon: '🥥' },
+      longBreak: { time: 15 * 60, subtitle: 'LONG BREAK 🏝️', icon: '🏝️' }
+    };
+
+    let currentMode = 'work';
+    let timeLeft = MODES.work.time;
+    let totalTime = MODES.work.time;
+    let timerInterval = null;
+    let isRunning = false;
+    let completedSessions = 0;
+
+    // Web Audio Synthesizer
+    let audioCtx = null;
+    let isRainPlaying = false;
+    let rainGain = null;
+
+    // DOM Elements
+    const timeDisplay = document.getElementById('timeDisplay');
+    const modeSubtitle = document.getElementById('modeSubtitle');
+    const startBtn = document.getElementById('startBtn');
+    const progressRing = document.getElementById('progressRing');
+    const modeTabs = document.querySelectorAll('.mode-tab');
+    const sessionCountText = document.getElementById('sessionCountText');
+    const sessionIcons = document.querySelectorAll('.session-icon');
+
+    const CIRCUMFERENCE = 2 * Math.PI * 100;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function updateDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      
+      timeDisplay.textContent = formattedTime;
+      document.title = `${formattedTime} - Pomodoro`;
+
+      // Update Ring Offset
+      const progressRatio = timeLeft / totalTime;
+      const strokeDashoffset = CIRCUMFERENCE * (1 - progressRatio);
+      progressRing.style.strokeDashoffset = strokeDashoffset;
+    }
+
+    function switchMode(mode) {
+      if (isRunning) pauseTimer();
+      currentMode = mode;
+      totalTime = MODES[mode].time;
+      timeLeft = totalTime;
+
+      modeTabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.mode === mode);
+      });
+
+      modeSubtitle.innerHTML = MODES[mode].subtitle;
+      updateDisplay();
+    }
+
+    function toggleTimer() {
+      initAudio();
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      isRunning = true;
+      startBtn.textContent = 'Pause';
+
+      timerInterval = setInterval(() => {
+        if (timeLeft > 0) {
+          timeLeft--;
+          updateDisplay();
+        } else {
+          handleSessionComplete();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      startBtn.textContent = 'Start';
+      clearInterval(timerInterval);
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      timeLeft = totalTime;
+      updateDisplay();
+    }
+
+    function handleSessionComplete() {
+      pauseTimer();
+      playChime();
+      triggerConfetti();
+
+      if (currentMode === 'work') {
+        completedSessions++;
+        updateTrackerUI();
+
+        if (completedSessions % 4 === 0) {
+          switchMode('longBreak');
+        } else {
+          switchMode('shortBreak');
+        }
+      } else {
+        switchMode('work');
+      }
+    }
+
+    function updateTrackerUI() {
+      const displayCount = Math.min(completedSessions + 1, 4);
+      sessionCountText.textContent = `${displayCount} / 4`;
+
+      sessionIcons.forEach((icon, idx) => {
+        if (idx <= completedSessions && completedSessions < 4) {
+          icon.classList.add('active');
+        } else if (completedSessions >= 4) {
+          icon.classList.add('active');
+        } else {
+          icon.classList.remove('active');
+        }
+      });
+    }
+
+    function playChime() {
+      if (!audioCtx) return;
+      const playNote = (freq, startTime, duration) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + startTime);
+        osc.stop(audioCtx.currentTime + startTime + duration);
+      };
+
+      playNote(523.25, 0, 0.8);
+      playNote(659.25, 0.2, 1.2);
+    }
+
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 35,
+          spread: 50,
+          origin: { y: 0.7 },
+          colors: ['#f77097', '#fae1eb', '#eb4f7c']
+        });
+      }
+    }
+
+    function toggleRainSound() {
+      initAudio();
+      if (isRainPlaying) {
+        if (rainGain) rainGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+        isRainPlaying = false;
+      } else {
+        const bufferSize = audioCtx.sampleRate * 2;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * 0.03;
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 700;
+
+        rainGain = audioCtx.createGain();
+        rainGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+        rainGain.gain.setTargetAtTime(0.1, audioCtx.currentTime, 0.3);
+
+        whiteNoise.connect(filter);
+        filter.connect(rainGain);
+        rainGain.connect(audioCtx.destination);
+
+        whiteNoise.start();
+        isRainPlaying = true;
+      }
+    }
+
+    function openSettings() {
+      alert("Settings: Current timer is set to default Pomodoro standard (25 min Work, 5 min Short Break, 15 min Long Break).");
+    }
+
+    updateDisplay();
+  </script>
+</body>
+</html>
